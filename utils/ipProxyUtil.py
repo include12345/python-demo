@@ -10,7 +10,7 @@ def crawl_ips():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.79 Safari/537.36"
     }
-    for i in range(1, 100):
+    for i in range(1, 20):
         print("====================", i)
         re = requests.get("http://www.xicidaili.com/nn/{0}".format(i), headers=headers)
         text = re.text
@@ -36,8 +36,11 @@ class GetIp(object):
         mysqlUtil.execute(delete_sql, ip)
 
     def judge_ip(self, http_type, ip, port):
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
+        }
         # 判断ip是否可用
-        http_url = "https://music.163.com/api/v1/resource/comments/R_SO_4_66842?limit=20&offset=120"
+        http_url = "http://zz.lianjia.com/ershoufang/erqi"
 
         if http_type == 'HTTP':
             use_http_type = 'http'
@@ -47,7 +50,7 @@ class GetIp(object):
         proxy = {use_http_type: ip + ":" + port}
         # proxy = {use_http_type: "{0}://{1}:{1}".format(use_http_type, ip, port)}
         try:
-            response = requests.get(http_url, proxies = proxy)
+            response = requests.get(http_url, proxies = proxy, headers=headers)
         except Exception as e:
             print("无效的ip:", ip, e)
             self.delete_ip(ip)
@@ -72,7 +75,13 @@ class GetIp(object):
         port = result['port']
         judge_re = self.judge_ip(http_type, ip, port)
         if judge_re:
-            return http_type + "://" + ip + ":" + port
+            if http_type == 'HTTP':
+                use_http_type = 'http'
+            else:
+                use_http_type = 'https'
+
+            return {use_http_type: ip + ":" + port}
+            # return http_type + "://" + ip + ":" + port
         else:
             return self.get_ip()
 
@@ -82,6 +91,6 @@ class GetIp(object):
 
 
 if __name__ == "__main__":
-    # crawl_ips()
-    getip = GetIp()
-    print(getip.get_ip())
+    crawl_ips()
+    # getip = GetIp()
+    # print(getip.get_ip())
