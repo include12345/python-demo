@@ -5,6 +5,7 @@ from utils import mysqlUtil
 from utils import ipProxyUtil
 
 import re
+import json
 
 
 
@@ -21,18 +22,76 @@ def get_hourse_href():
             print(title.a)
 
 
-def get_hourse(location):
+def get_row_lianjia():
+    query_sql = "select id from lianjia order by id desc limit 1"
+    result = mysqlUtil.queryone(query_sql)
+    if result is None:
+        return 1
+    else:
+        return int(result) + 1
+
+
+
+def get_house_info(id, row):
+    while id <= row:
+        query_sql = "select * from lianjia where id = %s"
+        result = mysqlUtil.queryone(query_sql, id)
+        url = None
+        if result is None:
+            return
+        else:
+            url = result['url']
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
+        }
+        rep = requests.get(url, proxies={'http': '39.137.69.6:8080'}, headers=headers)
+        text = rep.text
+        soup = BeautifulSoup(text, "html.parser")
+        print(soup)
+        id += 1
+        communityName = soup.find_all('div', 'communityName')
+        context = communityName[0].contents[2]
+        print(context.get_text()) # todo insert sql
+        sublocation = soup.find_all('div', 'areaName')  # 获取链接
+        test = sublocation[0].contents[2].contents[2]
+        print(test.get_text()) # todo insert sql
+
+        base = soup.find_all('div', 'base')
+        for content in base[0].contents[3].contents[1].contents:
+            if content == u'\n':
+                continue
+            print(content.get_text()) # todo insert sql
+        transaction = soup.find_all('div', 'transaction')
+        for content in transaction[0].contents[3].contents[1].contents:
+            if content == u'\n':
+                continue
+            label = content.get_text().split('\n')
+            print(label[2])
+
+        introContent = soup.find_all('div', 'introContent showbasemore')
+        for content in introContent[0].contents:
+            if content == u'\n' or content.get_text().find('房源标签') >= 0 or content.get_text().find('展开更多信息') >= 0 or content.get_text().find('注：') >= 0:
+                continue
+            label = content.contents[3].contents[0].split('\n')
+            print(label[2])
+
+        newCalculator = soup.find_all('div', attrs={"class":"new-calculator VIEWDATA", "data-shoufu": re.compile('totalLoan')})
+        shoufu = newCalculator[0].get('data-shoufu')
+        print(json.loads(shoufu))
+        # print(json.loads(test).get('totalLoan'))
+        # print(test)
+
+def get_hourse(location, current_id):
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     }
     url = 'http://zz.lianjia.com/ershoufang/' + location
     # getip = ipProxyUtil.GetIp()
     # proxyurl = getip.get_ip()
-    current_page = 1  # 当前在第几页
     rep = requests.get(url, proxies = {'http': '39.137.69.6:8080'}, headers=headers)
     text = rep.text
     soup = BeautifulSoup(text, "html.parser")
-    current_id = 1
+    current_page = 1
     try:
         error = soup.title.text
         if error == u"验证异常流量-链家网":
@@ -107,4 +166,20 @@ def get_hourse(location):
             current_id = id
 if __name__ == "__main__":
     # crawl_ips()
-    print(get_hourse('erqi'))
+    # n = get_row_lianjia()
+    # print(get_hourse('jinshui', n))
+    # n = get_row_lianjia()
+    # print(get_hourse('huiji', n))
+    #
+    # n = get_row_lianjia()
+    # print(get_hourse('zhongyuan', n))
+    #
+    # n = get_row_lianjia()
+    # print(get_hourse('hangkonggangqu', n))
+    #
+    # n = get_row_lianjia()
+    # print(get_hourse('gaoxin9', n))
+    #
+    # n = get_row_lianjia()
+    # print(get_hourse('jingkaiqu', n))
+    get_house_info(1, 91283)
